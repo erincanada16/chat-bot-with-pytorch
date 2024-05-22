@@ -1,10 +1,13 @@
 import json
+
+
 import numpy as np
 from model import NeuralNet
 from nltk_utils import tokenize, stem, bag_of_words
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader
+
 
 with open('resources/intents.json', 'r') as f:
     intents = json.load(f)
@@ -72,8 +75,8 @@ num_epochs = 1000
 # print(output_size,tags)
 
 dataset = ChatBotDataset()
-train_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=2)
-
+#Num workers reduced to zero from two due to cuda multiprocessing error
+train_loader = DataLoader(dataset=dataset, batch_size=batch_size, shuffle=True, num_workers=0)
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 model = NeuralNet(input_size, hidden_size, output_size).to(device)
 
@@ -95,5 +98,22 @@ for epoch in range(num_epochs):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-    if epoch + 1 % 100 == 0:
+    if ((epoch + 1) % 100) == 0:
         print(f'Epoch {epoch + 1} / {num_epochs}, Loss {loss.item():.4f}')
+print(f'final loss: {loss.item():.4f}')
+
+
+data = {
+    "model_state": model.state_dict(),
+    "input_size": input_size,
+    "output_size": output_size,
+    "hidden_size": hidden_size,
+    "all_words": all_words,
+    "tags": tags
+}
+
+# pth = pytorch
+FILE = "data.pth"
+torch.save(data, FILE)
+print(f'training complete. file saved to {FILE}')
+
